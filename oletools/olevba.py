@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+﻿#!/usr/bin/env python
 """
 olevba.py
 
@@ -1580,7 +1580,7 @@ class VBA_Project(object):
         dir_stream = BytesIO(decompress_stream(bytearray(dir_compressed)))
         # store reference for later use:
         self.dir_stream = dir_stream
-
+        self.references = []
         # reference: MS-VBAL 2.3.4.2 dir Stream: Version Independent Project Information
 
         # PROJECTSYSKIND Record
@@ -1764,6 +1764,7 @@ class VBA_Project(object):
                     unused = reference_id
                     unused = reference_name
                     unused = reference_name_unicode
+
                     continue
                 else:
                     check = reference_reserved
@@ -1844,7 +1845,8 @@ class VBA_Project(object):
                 self.check_value('REFERENCEREGISTERED_Reserved2', 0x0000, referenceregistered_reserved2)
                 unused = referenceregistered_id
                 unused = referenceregistered_size
-                unused = referenceregistered_libid
+                #unused = referenceregistered_libid
+                self.references.append(referenceregistered_libid)
                 continue
 
             if check == 0x000E:
@@ -1965,6 +1967,22 @@ class VBA_Project(object):
         """
         return bytes_string.decode(self.codec, errors=errors)
 
+    def projectReferences(self):
+        """
+        Returns projects references string
+        """
+        referenceString = ""
+        for reference in self.references:
+            referenceDetails = reference.split('#')
+            referenceString = referenceString + "Registry : " + referenceDetails[0][4:-1] + ";"
+            referenceString = referenceString + "Version : " + referenceDetails[1] + ";"
+            referenceString = referenceString + "Lindt : " + referenceDetails[2] + ";"
+            referenceString = referenceString + "Library : " + referenceDetails[3] + ";"
+            referenceString = referenceString + "Description : " + referenceDetails[4] + "\n"
+        return referenceString; 
+
+
+
 
 
 def _extract_vba(ole, vba_root, project_path, dir_path, relaxed=False):
@@ -1982,7 +2000,10 @@ def _extract_vba(ole, vba_root, project_path, dir_path, relaxed=False):
 
     project = VBA_Project(ole, vba_root, project_path, dir_path, relaxed=False)
     project.parse_project_stream()
-
+    print ('Project References')
+    print ('-' * 70)
+    print (project.projectReferences())
+    print ('-' * 70)
     for code_path, filename, code_data in project.parse_modules():
         yield (code_path, filename, code_data)
 
